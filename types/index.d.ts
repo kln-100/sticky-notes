@@ -36,6 +36,7 @@ declare module 'claude-code' {
       showFolders: Shaped<boolean>
       selectedNote: Shaped<string | null>
       showMoveMenu: Shaped<boolean>
+      activeTab: Shaped<'notes' | 'folders' | 'settings'>
     }
   }
 }
