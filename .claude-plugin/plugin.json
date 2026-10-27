@@ -1,0 +1,8 @@
+{
+  "name": "sticky-notes",
+  "version": "0.1.0",
+  "description": "Project-aware notes panel for Claude Code CLI",
+  "author": { "name": "kln-100" },
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

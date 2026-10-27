@@ -1,0 +1,6 @@
+{
+  "name": "sticky-notes",
+  "description": "Project-aware notes panel for Claude Code CLI",
+  "owner": { "name": "kln-100" },
+  "plugins": [{ "name": "sticky-notes", "source": "./" }]
+}
