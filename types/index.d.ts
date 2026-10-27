@@ -17,6 +17,10 @@ declare module 'claude-code' {
       editing: Shaped<string | null>
       draft: Shaped<string>
       projectInfo: Shaped<ProjectInfo | null>
+      currentAccent: Shaped<string>
+      currentNoteColor: Shaped<string>
+      currentBgColor: Shaped<string>
+      showColorPicker: Shaped<boolean>
     }
   }
 }

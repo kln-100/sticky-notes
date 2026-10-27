@@ -20,6 +20,25 @@ const projectInfo = atom({ plugin: 'sticky-notes', key: 'projectInfo' } as const
   shape: 'projectInfo-1',
 })
 
+const currentAccent = atom({ plugin: 'sticky-notes', key: 'currentAccent' } as const, 'yellow', {
+  shape: 'accent-1',
+})
+
+const currentNoteColor = atom({ plugin: 'sticky-notes', key: 'currentNoteColor' } as const, 'white', {
+  shape: 'notecolor-1',
+})
+
+const currentBgColor = atom({ plugin: 'sticky-notes', key: 'currentBgColor' } as const, '', {
+  shape: 'bgcolor-1',
+})
+
+const showColorPicker = atom({ plugin: 'sticky-notes', key: 'showColorPicker' } as const, false, {
+  shape: 'picker-1',
+})
+
+const COLORS = ['yellow', 'cyan', 'green', 'magenta', 'blue', 'red', 'white'] as const
+const BG_COLORS = ['', 'black', 'blue', 'cyan', 'green', 'magenta', 'red', 'yellow'] as const
+
 async function getProjectInfo($: { session: { root: () => Promise<string> }, process: { run: (argv: readonly string[], init?: { cwd?: string }) => Promise<{ exitCode: number, stdout: string }> } }): Promise<ProjectInfo> {
   const cwd = await $.session.root()
   const projectName = cwd.split('/').pop() || 'unknown'
@@ -53,6 +72,14 @@ export const register: Register = on => {
     if (allNotes && allNotes[key]) {
       await update($, notes, () => allNotes[key])
     }
+
+    // Load saved colors
+    const savedAccent = await $.store.get('accentColor') as string | undefined
+    const savedNoteColor = await $.store.get('noteColor') as string | undefined
+    const savedBgColor = await $.store.get('bgColor') as string | undefined
+    if (savedAccent) await update($, currentAccent, () => savedAccent)
+    if (savedNoteColor) await update($, currentNoteColor, () => savedNoteColor)
+    if (savedBgColor) await update($, currentBgColor, () => savedBgColor)
 
     await $.command.register({
       name: 'notes',
@@ -97,7 +124,11 @@ export const register: Register = on => {
     const editingId = await read($, editing)
     const draftText = await read($, draft)
     const info = await read($, projectInfo)
-    const room = Math.max(1, (e.viewport?.rows ?? 24) - 10)
+    const accentColor = await read($, currentAccent)
+    const noteColor = await read($, currentNoteColor)
+    const bgColor = await read($, currentBgColor)
+    const pickerOpen = await read($, showColorPicker)
+    const room = Math.max(1, (e.viewport?.rows ?? 24) - 12)
 
     const saveNotes = async (newNotes: Note[]) => {
       if (!info) return
@@ -157,9 +188,9 @@ export const register: Register = on => {
     }
 
     return (
-      <Box flexDirection="column" padding={1}>
+      <Box flexDirection="column" padding={1} backgroundColor={bgColor || undefined} minHeight="100%" width="100%">
         <Box marginBottom={1}>
-          <Text bold color="yellow">📝 Project Notes</Text>
+          <Text bold color={accentColor}>📝 Project Notes</Text>
           {info && (
             <Text dimColor> — {info.projectName}/{info.branch}</Text>
           )}
@@ -197,7 +228,7 @@ export const register: Register = on => {
           {list.slice(-room).map((note, i) => (
             <Box key={note.id} marginBottom={0}>
               <Text dimColor>{i + 1}. </Text>
-              <Text wrap="wrap">{note.text}</Text>
+              <Text wrap="wrap" color={noteColor}>{note.text}</Text>
               <Text> </Text>
               <Button
                 key={`edit-${note.id}`}
@@ -218,6 +249,72 @@ export const register: Register = on => {
             </Box>
           ))}
         </Box>
+
+        {/* Color wheel toggle */}
+        <Box marginTop={1}>
+          <Button
+            key="color-toggle"
+            plain
+            onPress={async () => {
+              await update($, showColorPicker, v => !v)
+            }}
+          >
+            🎨{pickerOpen ? ' ▼' : ' ▶'}
+          </Button>
+        </Box>
+
+        {/* Expanded color picker */}
+        {pickerOpen && (
+          <Box flexDirection="column" marginTop={1}>
+            <Box>
+              <Text dimColor>Bg: </Text>
+              {BG_COLORS.map(c => (
+                <Button
+                  key={`bg-${c || 'none'}`}
+                  plain
+                  onPress={async () => {
+                    await update($, currentBgColor, () => c)
+                    await $.store.set('bgColor', c)
+                  }}
+                >
+                  <Text backgroundColor={c || undefined} color={c === bgColor ? 'green' : undefined}>
+                    {c === bgColor ? '●' : '○'}
+                  </Text>
+                </Button>
+              ))}
+            </Box>
+            <Box>
+              <Text dimColor>Title: </Text>
+              {COLORS.map(c => (
+                <Button
+                  key={`accent-${c}`}
+                  plain
+                  onPress={async () => {
+                    await update($, currentAccent, () => c)
+                    await $.store.set('accentColor', c)
+                  }}
+                >
+                  <Text color={c}>{c === accentColor ? '●' : '○'}</Text>
+                </Button>
+              ))}
+            </Box>
+            <Box>
+              <Text dimColor>Notes: </Text>
+              {COLORS.map(c => (
+                <Button
+                  key={`note-${c}`}
+                  plain
+                  onPress={async () => {
+                    await update($, currentNoteColor, () => c)
+                    await $.store.set('noteColor', c)
+                  }}
+                >
+                  <Text color={c}>{c === noteColor ? '●' : '○'}</Text>
+                </Button>
+              ))}
+            </Box>
+          </Box>
+        )}
       </Box>
     )
   })
